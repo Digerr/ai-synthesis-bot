@@ -1,0 +1,32 @@
+name: VK Game Deals
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7 */2 * * *"
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r vk-game-deals/requirements.txt
+      - name: Run bot
+        working-directory: vk-game-deals
+        env:
+          VK_TOKEN: ${{ secrets.VK_TOKEN }}
+          VK_GROUP_ID: ${{ secrets.VK_GROUP_ID }}
+        run: python bot.py
+      - name: Save seen database
+        run: |
+          if git diff --quiet -- vk-game-deals/data/seen.json; then exit 0; fi
+          git config user.name "vk-game-deals-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add vk-game-deals/data/seen.json
+          git commit -m "chore: update seen deals"
+          git push
